@@ -1,0 +1,3 @@
+[submodule "GenericRepository"]
+	path = GenericRepository
+	url = https://github.com/olnichenko/GenericRepository.git
