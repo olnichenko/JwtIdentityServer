@@ -1,3 +1,5 @@
 /.vs/
 /JwtIdentityServer/bin/
 /JwtIdentityServer/obj/
+/DAL/bin/
+/DAL/obj/

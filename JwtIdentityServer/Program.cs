@@ -1,3 +1,6 @@
+using DAL;
+using JwtIdentityServer.ConfigurationModels;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // if is Development get setting from appsettings.<computer name>.json
@@ -10,6 +13,12 @@ if (builder.Environment.EnvironmentName == "Development")
         .AddEnvironmentVariables();
 }
 
+builder.Services.Configure<DbSettingsModel>(
+    builder.Configuration.GetSection(DbSettingsModel.SectionName));
+
+var dbSettings = builder.Configuration.GetSection(DbSettingsModel.SectionName).Get<DbSettingsModel>();
+builder.Services.AddScoped((_) => new AppDbContext(dbSettings.ConnectionString));
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -17,10 +26,16 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseRouting();
 
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapDefaultControllerRoute();
+});
 
 app.MapControllers();
 
