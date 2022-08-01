@@ -14,5 +14,17 @@ namespace DAL.Repositories
         public UserRepository(AppDbContext appDbContext) : base(appDbContext)
         {
         }
+        public async Task<bool> ChangePassword(Guid resetKey, string newPassword)
+        {
+            var context = _dbContext as AppDbContext;
+            var user = await context.Users.Where(x => x.resetPasswordKeys.Any(y => y.Id == resetKey && y.ExpirationDate > DateTime.Now && !y.IsUsed)).SingleOrDefaultAsync();
+            if (user != null)
+            {
+                user.Password = newPassword;
+                var result = await Update(user);
+                return result.Password == newPassword;
+            }
+            return false;
+        }
     }
 }

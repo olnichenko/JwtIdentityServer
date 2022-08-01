@@ -3,3 +3,6 @@
 /JwtIdentityServer/obj/
 /DAL/bin/
 /DAL/obj/
+/JwtIdentityServer/AspIdUsers.db
+/JwtIdentityServer/AspIdUsers.db-shm
+/JwtIdentityServer/AspIdUsers.db-wal

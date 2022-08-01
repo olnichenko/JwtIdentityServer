@@ -8,11 +8,12 @@ namespace DAL
         private string _connectionString;
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<ResetPasswordKey> ResetPasswordKeys => Set<ResetPasswordKey>();
 
         public AppDbContext(string connectionString)
         {
             _connectionString = connectionString;
-            Database.EnsureCreated();
+            //Database.EnsureCreated();
             if (Database.GetPendingMigrations().Any())
             {
                 Database.Migrate();

@@ -11,6 +11,7 @@ namespace JwtIdentityServer.Services
     {
         private UserRepository _userRepository;
         private UserValidator _userValidator;
+        
         public UserService(AppDbContext appDbContext, UserValidator userValidator)
         {
             _userRepository = new UserRepository(appDbContext);
@@ -27,14 +28,28 @@ namespace JwtIdentityServer.Services
             var result = await _userRepository.Create(user);
             return result;
         }
-        private string GetHash(string text)
+        public User? GetByEmailAndPassword(string email, string password)
         {
-            // SHA512 is disposable by inheritance.  
+            password = GetHash(password);
+            var user = _userRepository.Get(_ => _.Password == password && _.Email == email).SingleOrDefault();
+            return user;
+        }
+        public User? GetByEmailWithResetPasswordKeys(string email)
+        {
+            var user = _userRepository.GetWithInclude(_ => _.Email == email, _ => _.resetPasswordKeys).SingleOrDefault();
+            return user;
+        }
+        public async Task<bool> ResetUserPassword(Guid resetPasswordKey, string newPassword)
+        {
+            newPassword = GetHash(newPassword);
+            return await _userRepository.ChangePassword(resetPasswordKey, newPassword);
+        }
+        
+        private string GetHash(string text)
+        {  
             using (var sha256 = SHA256.Create())
-            {
-                // Send a sample text to hash.  
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(text));
-                // Get the hashed string.  
+            { 
+                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(text));  
                 return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
             }
         }
