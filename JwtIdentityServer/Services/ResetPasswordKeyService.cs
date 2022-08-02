@@ -24,8 +24,12 @@ namespace JwtIdentityServer.Services
             };
 
             var result = await _resetPasswordKeyRepository.Create(resetPasswordKey, user);
+            var linkText = string.Empty;
 
-            var linkText = _identitySettingsModel.PasswordResetLinkUrl + result.Id;
+            if (result != null)
+            {
+                linkText = _identitySettingsModel.PasswordResetLinkUrl + result.Id;
+            }
             return linkText;
         }
 

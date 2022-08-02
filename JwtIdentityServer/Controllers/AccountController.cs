@@ -77,8 +77,8 @@ namespace JwtIdentityServer.Controllers
             var result = await _userService.ResetUserPassword(resetKey, newPassword);
             if (result)
             {;
-                var resetKeyResult = await _resetPasswordKeyService.SetResetKeyAsUsed(resetKey);
-                return resetKeyResult;
+                await _resetPasswordKeyService.SetResetKeyAsUsed(resetKey);
+                return true;
             }
             return false;
         }
