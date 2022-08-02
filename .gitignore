@@ -6,3 +6,5 @@
 /JwtIdentityServer/AspIdUsers.db
 /JwtIdentityServer/AspIdUsers.db-shm
 /JwtIdentityServer/AspIdUsers.db-wal
+/TestsUnit/bin/
+/TestsUnit/obj/

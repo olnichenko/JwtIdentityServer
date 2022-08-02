@@ -1,8 +1,10 @@
-﻿using DAL;
+﻿using AutoMapper;
+using DAL;
 using DAL.Models;
 using JwtIdentityServer.ConfigurationModels;
 using JwtIdentityServer.Services;
 using JwtIdentityServer.Validators;
+using JwtIdentityServer.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -12,22 +14,24 @@ namespace JwtIdentityServer.Controllers
     [Route("[controller]/[action]")]
     public class AccountController : Controller
     {
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
         private readonly ITokenService _tokenService;
-        private readonly IOptions<IdentitySettingsModel> _identitySettingsModel;
-        private readonly AppDbContext _appDbContext;
-        public AccountController(AppDbContext appDbContext, ITokenService tokenService, IOptions<IdentitySettingsModel> identitySettingsModel)
+        private readonly IdentitySettingsModel _identitySettingsModel;
+        private readonly IMapper _mapper;
+        private readonly IResetPasswordKeyService _resetPasswordKeyService;
+        public AccountController(ITokenService tokenService, IOptions<IdentitySettingsModel> identitySettingsModel, IMapper mapper, IUserService userService, IResetPasswordKeyService resetPasswordKeyService)
         {
-            var userValidator = new UserValidator();
-            _appDbContext = appDbContext;
-            _userService = new UserService(_appDbContext, userValidator);
+            _userService = userService;
             _tokenService = tokenService;
-            _identitySettingsModel = identitySettingsModel;
+            _identitySettingsModel = identitySettingsModel.Value;
+            _mapper = mapper;
+            _resetPasswordKeyService = resetPasswordKeyService;
         }
 
         [HttpPost]
-        public async Task<string> Register(User user)
+        public async Task<string> Register(UserVM userVM)
         {
+            var user = _mapper.Map<User>(userVM);
             var resultUser = await _userService.CreateUser(user);
             var token = string.Empty;
             if (resultUser.Id > 0)
@@ -56,8 +60,7 @@ namespace JwtIdentityServer.Controllers
             var link = string.Empty;
             if (user != null)
             {
-                var resetPasswordService = new ResetPasswordKeyService(_appDbContext, _identitySettingsModel);
-                link = await resetPasswordService.CreateResetPasswordLink(user);
+                link = await _resetPasswordKeyService.CreateResetPasswordLink(user);
             }
             return link;
         }
@@ -73,9 +76,8 @@ namespace JwtIdentityServer.Controllers
         {
             var result = await _userService.ResetUserPassword(resetKey, newPassword);
             if (result)
-            {
-                var resetPasswordService = new ResetPasswordKeyService(_appDbContext, _identitySettingsModel);
-                var resetKeyResult = await resetPasswordService.SetResetKeyAsUsed(resetKey);
+            {;
+                var resetKeyResult = await _resetPasswordKeyService.SetResetKeyAsUsed(resetKey);
                 return resetKeyResult;
             }
             return false;

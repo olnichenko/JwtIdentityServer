@@ -6,14 +6,14 @@ using Microsoft.Extensions.Options;
 
 namespace JwtIdentityServer.Services
 {
-    public class ResetPasswordKeyService
+    public class ResetPasswordKeyService : IResetPasswordKeyService
     {
         private readonly IdentitySettingsModel _identitySettingsModel;
-        private readonly ResetPasswordKeyRepository _resetPasswordKeyRepository;
-        public ResetPasswordKeyService(AppDbContext appDbContext, IOptions<IdentitySettingsModel> identitySettingsModel)
+        private readonly IResetPasswordKeyRepository<ResetPasswordKey, Guid> _resetPasswordKeyRepository;
+        public ResetPasswordKeyService(IOptions<IdentitySettingsModel> identitySettingsModel, IResetPasswordKeyRepository<ResetPasswordKey, Guid> resetPasswordKeyRepository)
         {
             _identitySettingsModel = identitySettingsModel.Value;
-            _resetPasswordKeyRepository = new ResetPasswordKeyRepository(appDbContext);
+            _resetPasswordKeyRepository = resetPasswordKeyRepository;
         }
         public async Task<string> CreateResetPasswordLink(User user)
         {

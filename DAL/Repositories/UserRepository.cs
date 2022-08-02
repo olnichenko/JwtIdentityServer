@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DAL.Repositories
 {
-    public class UserRepository : BaseRepository<User, long>
+    public class UserRepository : BaseRepository<User, long>, IUserRepository<User, long>
     {
         public UserRepository(AppDbContext appDbContext) : base(appDbContext)
         {

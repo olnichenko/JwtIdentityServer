@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Repositories
 {
-    public class ResetPasswordKeyRepository : BaseRepository<ResetPasswordKey, Guid>
+    public class ResetPasswordKeyRepository : BaseRepository<ResetPasswordKey, Guid>, IResetPasswordKeyRepository<ResetPasswordKey, Guid>
     {
         public ResetPasswordKeyRepository(AppDbContext appDbContext) : base(appDbContext)
         {

@@ -7,14 +7,14 @@ using System.Text;
 
 namespace JwtIdentityServer.Services
 {
-    public class UserService
+    public class UserService : IUserService
     {
-        private UserRepository _userRepository;
-        private UserValidator _userValidator;
+        private readonly IUserRepository<User, long> _userRepository;
+        private readonly IValidator<User> _userValidator;
         
-        public UserService(AppDbContext appDbContext, UserValidator userValidator)
+        public UserService(IValidator<User> userValidator, IUserRepository<User, long> userRepository)
         {
-            _userRepository = new UserRepository(appDbContext);
+            _userRepository = userRepository;
             _userValidator = userValidator;
         }
         public async Task<User> CreateUser(User user)

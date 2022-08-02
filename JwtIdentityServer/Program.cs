@@ -1,8 +1,11 @@
 using DAL;
+using JwtIdentityServer;
 using JwtIdentityServer.ConfigurationModels;
 using JwtIdentityServer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 // if is Development get setting from appsettings.<computer name>.json
 // else standart settings
@@ -14,19 +17,11 @@ if (builder.Environment.EnvironmentName == "Development")
         .AddEnvironmentVariables();
 }
 
-builder.Services.AddControllersWithViews();
-
-builder.Services.Configure<DbSettingsModel>(
-    builder.Configuration.GetSection(DbSettingsModel.SectionName));
-builder.Services.Configure<TokenSettingsModel>(
-    builder.Configuration.GetSection(TokenSettingsModel.SectionName));
-builder.Services.Configure<IdentitySettingsModel>(
-    builder.Configuration.GetSection(IdentitySettingsModel.SectionName));
-
-builder.Services.AddScoped<ITokenService, TokenService>();
-
-var dbSettings = builder.Configuration.GetSection(DbSettingsModel.SectionName).Get<DbSettingsModel>();
-builder.Services.AddScoped((_) => new AppDbContext(dbSettings.ConnectionString));
+// extensions Startup.cs
+builder.Services.ConfigureServices();
+builder.Services.MapSettings(builder.Configuration);
+builder.Services.MapRepositories();
+builder.Services.MapServices();
 
 // Add services to the container.
 
