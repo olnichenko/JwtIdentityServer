@@ -19,6 +19,7 @@ namespace JwtIdentityServer
             services.Configure<DbSettingsModel>(configuration.GetSection(DbSettingsModel.SectionName));
             services.Configure<TokenSettingsModel>(configuration.GetSection(TokenSettingsModel.SectionName));
             services.Configure<IdentitySettingsModel>(configuration.GetSection(IdentitySettingsModel.SectionName));
+            services.Configure<MailSettingsModel>(configuration.GetSection(MailSettingsModel.SectionName));
 
             var dbSettings = configuration.GetSection(DbSettingsModel.SectionName).Get<DbSettingsModel>();
             services.AddScoped((_) => new AppDbContext(dbSettings.ConnectionString));
@@ -35,6 +36,7 @@ namespace JwtIdentityServer
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IResetPasswordKeyService, ResetPasswordKeyService>();
+            services.AddScoped<IMailService, SmtpMailService>();
         }
     }
 }

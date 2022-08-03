@@ -149,5 +149,35 @@ namespace TestsUnit
             _mockUserRepository.Verify(x => x.ChangePassword(testResetKey, It.IsAny<string>()), Times.Once);
             Assert.IsFalse(result);
         }
+
+        [Test]
+        public void ConfirmUserEmail_ShouldUpdateUserData()
+        {
+            _resultUser.IsEmailConfirmed = false;
+            var users = new List<User>();
+            users.Add(_resultUser);
+            _mockUserRepository.Setup(x => x.Get(It.IsAny<Func<User, bool>>())).Returns(users);
+            var confirmKey = Guid.NewGuid();
+
+            var result = _userService.ConfirmUserEmail(confirmKey).Result;
+
+            _mockUserRepository.Verify(x => x.Update(_resultUser), Times.Once);
+            Assert.IsTrue(result);
+            Assert.IsTrue(_resultUser.IsEmailConfirmed);
+        }
+
+        [Test]
+        public void ConfirmUserEmail_ShouldNotFoundUser()
+        {
+            var users = new List<User>();
+
+            _mockUserRepository.Setup(x => x.Get(It.IsAny<Func<User, bool>>())).Returns(users);
+            var confirmKey = Guid.NewGuid();
+
+            var result = _userService.ConfirmUserEmail(confirmKey).Result;
+
+            _mockUserRepository.Verify(x => x.Update(_resultUser), Times.Never);
+            Assert.False(result);
+        }
     }
 }

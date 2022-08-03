@@ -17,6 +17,19 @@ namespace JwtIdentityServer.Services
             _userRepository = userRepository;
             _userValidator = userValidator;
         }
+
+        public async Task<bool> ConfirmUserEmail(Guid confirmationKey)
+        {
+            var user = _userRepository.Get(x => x.EmailConfirmationKey == confirmationKey).SingleOrDefault();
+            if (user != null)
+            {
+                user.IsEmailConfirmed = true;
+                await _userRepository.Update(user);
+                return true;
+            }
+            return false;
+        }
+
         public async Task<User> CreateUser(User user)
         {
             var valResult = _userValidator.Validate(user);
@@ -25,6 +38,7 @@ namespace JwtIdentityServer.Services
                 return user;
             }
             user.Password = GetHash(user.Password);
+            user.EmailConfirmationKey = Guid.NewGuid();
             var result = await _userRepository.Create(user);
             return result;
         }
@@ -44,8 +58,7 @@ namespace JwtIdentityServer.Services
             newPassword = GetHash(newPassword);
             return await _userRepository.ChangePassword(resetPasswordKey, newPassword);
         }
-        
-        private string GetHash(string text)
+        protected virtual string GetHash(string text)
         {  
             using (var sha256 = SHA256.Create())
             { 

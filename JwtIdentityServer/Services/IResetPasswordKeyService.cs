@@ -4,7 +4,7 @@ namespace JwtIdentityServer.Services
 {
     public interface IResetPasswordKeyService
     {
-        Task<string> CreateResetPasswordLink(User user);
+        Task<ResetPasswordKey> CreateResetPasswordKey(User user);
         Task<bool> SetResetKeyAsUsed(Guid resetKey);
     }
 }

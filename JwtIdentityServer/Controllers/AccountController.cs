@@ -16,16 +16,16 @@ namespace JwtIdentityServer.Controllers
     {
         private readonly IUserService _userService;
         private readonly ITokenService _tokenService;
-        private readonly IdentitySettingsModel _identitySettingsModel;
         private readonly IMapper _mapper;
         private readonly IResetPasswordKeyService _resetPasswordKeyService;
-        public AccountController(ITokenService tokenService, IOptions<IdentitySettingsModel> identitySettingsModel, IMapper mapper, IUserService userService, IResetPasswordKeyService resetPasswordKeyService)
+        private readonly IMailService _mailService;
+        public AccountController(ITokenService tokenService, IMapper mapper, IUserService userService, IResetPasswordKeyService resetPasswordKeyService, IMailService mailService)
         {
             _userService = userService;
             _tokenService = tokenService;
-            _identitySettingsModel = identitySettingsModel.Value;
             _mapper = mapper;
             _resetPasswordKeyService = resetPasswordKeyService;
+            _mailService = mailService;
         }
 
         [HttpPost]
@@ -33,12 +33,13 @@ namespace JwtIdentityServer.Controllers
         {
             var user = _mapper.Map<User>(userVM);
             var resultUser = await _userService.CreateUser(user);
-            var token = string.Empty;
+            var resultMessage = "Error";
             if (resultUser.Id > 0)
             {
-                token = _tokenService.GenerateToken(resultUser);
+                _mailService.SendEmailConfirmationMessage(resultUser.Email, resultUser.EmailConfirmationKey);
+                resultMessage = "Confirm your EMAIL";
             }
-            return token;
+            return resultMessage;
         }
 
         [HttpPost]
@@ -46,7 +47,7 @@ namespace JwtIdentityServer.Controllers
         {
             var user = _userService.GetByEmailAndPassword(email, password);
             var token = string.Empty;
-            if (user != null)
+            if (user != null && user.IsEmailConfirmed)
             {
                 token = _tokenService.GenerateToken(user);
             }
@@ -57,12 +58,23 @@ namespace JwtIdentityServer.Controllers
         public async Task<string> ResetPassword(string email)
         {
             var user = _userService.GetByEmailWithResetPasswordKeys(email);
-            var link = string.Empty;
-            if (user != null)
+            if (user != null && user.IsEmailConfirmed)
             {
-                link = await _resetPasswordKeyService.CreateResetPasswordLink(user);
+                var result = await _resetPasswordKeyService.CreateResetPasswordKey(user);
+                if (result != null)
+                {
+                    _mailService.SendResetPasswordMessage(user.Email, result.Id);
+                    return "Message sended";
+                }
             }
-            return link;
+            return "Error";
+        }
+
+        [HttpGet("{emailConfirmationKey}")]
+        public async Task<bool> ConfirmEmail(Guid emailConfirmationKey)
+        {
+            var result = await _userService.ConfirmUserEmail(emailConfirmationKey);
+            return result;
         }
 
         [HttpGet("{resetKey}")]

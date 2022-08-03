@@ -30,7 +30,6 @@ namespace TestsUnit
         public void Setup()
         {
             _identitySettings = Options.Create(new IdentitySettingsModel());
-            _identitySettings.Value.PasswordResetLinkUrl = "testListUrl";
             _identitySettings.Value.PasswordResetLinkExpirationDateHours = 1;
             _mockResetPasswordRepository = new Mock<IResetPasswordKeyRepository<ResetPasswordKey, Guid>>();
             _resetPasswordKeyService = new ResetPasswordKeyService(_identitySettings, _mockResetPasswordRepository.Object);
@@ -47,15 +46,14 @@ namespace TestsUnit
         }
 
         [Test]
-        public void CreateResetPasswordLink_ShoulCreateLink()
+        public void CreateResetPasswordKey_ShoulCreateKey()
         {
             _mockResetPasswordRepository.Setup(x => x.Create(It.IsAny<ResetPasswordKey>(), _user)).Returns(Task.FromResult(_resetPasswordKey));
 
-            var result = _resetPasswordKeyService.CreateResetPasswordLink(_user).Result;
+            var result = _resetPasswordKeyService.CreateResetPasswordKey(_user).Result;
 
             _mockResetPasswordRepository.Verify(x => x.Create(It.IsAny<ResetPasswordKey>(), _user), Times.Once);
-            var expectedResult = _identitySettings.Value.PasswordResetLinkUrl + _resetPasswordKey.Id;
-            Assert.That(result, Is.EqualTo(expectedResult));
+            Assert.IsNotNull(result);
         }
 
         [Test]
@@ -63,10 +61,10 @@ namespace TestsUnit
         {
             _mockResetPasswordRepository.Setup(x => x.Create(It.IsAny<ResetPasswordKey>(), _user)).Returns(Task.FromResult((ResetPasswordKey?)null));
 
-            var result = _resetPasswordKeyService.CreateResetPasswordLink(_user).Result;
+            var result = _resetPasswordKeyService.CreateResetPasswordKey(_user).Result;
 
             _mockResetPasswordRepository.Verify(x => x.Create(It.IsAny<ResetPasswordKey>(), _user), Times.Once);
-            Assert.IsEmpty(result);
+            Assert.IsNull(result);
         }
 
         [Test]

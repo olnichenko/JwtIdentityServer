@@ -20,11 +20,12 @@ namespace TestsUnit
         };
         private User _mappedUser;
         private User _resultUser;
+        private ResetPasswordKey _resetPasswordKey;
         private Mock<ITokenService> _mockTokenService;
-        private IOptions<IdentitySettingsModel> _identitySettings;
         private Mock<IUserService> _mockUserService;
         private Mock<IMapper> _mockMapper;
         private Mock<IResetPasswordKeyService> _mockResetPasswordService;
+        private Mock<IMailService> _mockMailService;
         private AccountController _accountController;
 
         [SetUp]
@@ -40,28 +41,34 @@ namespace TestsUnit
             {
                 Id = 1,
                 Email = _userVM.Email,
-                Password = _userVM.Password
+                Password = _userVM.Password,
+                IsEmailConfirmed = true
+            };
+            _resetPasswordKey = new ResetPasswordKey
+            {
+                ExpirationDate = DateTime.Now.AddDays(1),
+                Id = Guid.NewGuid(),
             };
 
             _mockTokenService = new Mock<ITokenService>();
             _mockTokenService.Setup(x => x.GenerateToken(_resultUser)).Returns(_token);
 
-            _identitySettings = Options.Create(new IdentitySettingsModel());
-
             _mockUserService = new Mock<IUserService>();
             _mockUserService.Setup(x => x.CreateUser(_mappedUser)).Returns(Task.FromResult(_resultUser));
             _mockUserService.Setup(x => x.GetByEmailAndPassword(_userVM.Email, _userVM.Password)).Returns(_resultUser);
+
+            _mockMailService = new Mock<IMailService>();
 
             _mockMapper = new Mock<IMapper>();
             _mockMapper.Setup(x => x.Map<User>(_userVM)).Returns(_mappedUser);
 
             _mockResetPasswordService = new Mock<IResetPasswordKeyService>();
 
-            _accountController = new AccountController(_mockTokenService.Object, _identitySettings, _mockMapper.Object, _mockUserService.Object, _mockResetPasswordService.Object);
+            _accountController = new AccountController(_mockTokenService.Object, _mockMapper.Object, _mockUserService.Object, _mockResetPasswordService.Object, _mockMailService.Object);
         }
 
         [Test]
-        public void Register_ShouldReturnToken()
+        public void Register_ShouldRegisterUser()
         {
             // a
             var result = _accountController.Register(_userVM).Result;
@@ -69,12 +76,12 @@ namespace TestsUnit
             // a
             _mockMapper.Verify(x => x.Map<User>(_userVM), Times.Once);
             _mockUserService.Verify(x => x.CreateUser(_mappedUser), Times.Once);
-            _mockTokenService.Verify(x => x.GenerateToken(_resultUser), Times.Once);
-            Assert.That(result, Is.EqualTo(_token));
+            _mockMailService.Verify(x => x.SendEmailConfirmationMessage(_resultUser.Email, It.IsAny<Guid>()), Times.Once);
+            Assert.IsFalse(result == "Error");
         }
 
         [Test]
-        public void Register_ShouldReturnEmptyString()
+        public void Register_ShoulNotRegisterUser()
         {
             // a
             _resultUser.Id = 0;
@@ -85,8 +92,8 @@ namespace TestsUnit
             // a
             _mockMapper.Verify(x => x.Map<User>(_userVM), Times.Once);
             _mockUserService.Verify(x => x.CreateUser(_mappedUser), Times.Once);
-            _mockTokenService.Verify(x => x.GenerateToken(It.IsAny<User>()), Times.Never);
-            Assert.That(result, Is.Empty);
+            _mockMailService.Verify(x => x.SendEmailConfirmationMessage(It.IsAny<string>(), It.IsAny<Guid>()), Times.Never);
+            Assert.That(result, Is.EqualTo("Error"));
         }
 
         [Test]
@@ -100,7 +107,7 @@ namespace TestsUnit
         }
 
         [Test]
-        public void GetToken_ShouldReturnEmptyString()
+        public void GetToken_ShouldNotFoundUser()
         {
             _mockUserService.Setup(x => x.GetByEmailAndPassword(_userVM.Email, _userVM.Password)).Returns((User?)null);
 
@@ -112,29 +119,63 @@ namespace TestsUnit
         }
 
         [Test]
-        public void ResetPassword_ShouldReturnLink()
+        public void GetToken_ShouldNotSendToken()
         {
-            var link = "testLink";
+            _resultUser.IsEmailConfirmed = false;
+
+            var result = _accountController.GetToken(_userVM.Email, _userVM.Password);
+
+            _mockUserService.Verify(x => x.GetByEmailAndPassword(_userVM.Email, _userVM.Password), Times.Once);
+            _mockTokenService.Verify(x => x.GenerateToken(It.IsAny<User>()), Times.Never);
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void ResetPassword_ShouldSendMail()
+        {
             _mockUserService.Setup(x => x.GetByEmailWithResetPasswordKeys(_mappedUser.Email)).Returns(_resultUser);
-            _mockResetPasswordService.Setup(x => x.CreateResetPasswordLink(_resultUser)).Returns(Task.FromResult(link));
+            _mockResetPasswordService.Setup(x => x.CreateResetPasswordKey(_resultUser)).Returns(Task.FromResult(_resetPasswordKey));
 
             var result = _accountController.ResetPassword(_mappedUser.Email).Result;
 
             _mockUserService.Verify(x => x.GetByEmailWithResetPasswordKeys(_mappedUser.Email), Times.Once);
-            _mockResetPasswordService.Verify(x => x.CreateResetPasswordLink(_resultUser), Times.Once);
-            Assert.That(result, Is.EqualTo(link));
+            _mockResetPasswordService.Verify(x => x.CreateResetPasswordKey(_resultUser), Times.Once);
+            _mockMailService.Verify(x => x.SendResetPasswordMessage(_resultUser.Email, _resetPasswordKey.Id));
+            Assert.IsFalse(result == "Error");
         }
 
         [Test]
-        public void ResetPassword_ShouldReturnEmptyString()
+        public void ResetPassword_ShouldNotFoundUser()
         {
             _mockUserService.Setup(x => x.GetByEmailWithResetPasswordKeys(_mappedUser.Email)).Returns((User?)null);
 
             var result = _accountController.ResetPassword(_mappedUser.Email).Result;
 
             _mockUserService.Verify(x => x.GetByEmailWithResetPasswordKeys(_mappedUser.Email), Times.Once);
-            _mockResetPasswordService.Verify(x => x.CreateResetPasswordLink(_resultUser), Times.Never);
-            Assert.That(result, Is.Empty);
+            _mockResetPasswordService.Verify(x => x.CreateResetPasswordKey(_resultUser), Times.Never);
+            _mockMailService.Verify(x => x.SendResetPasswordMessage(It.IsAny<string>(), It.IsAny<Guid>()), Times.Never);
+            Assert.That(result, Is.EqualTo("Error"));
+        }
+
+        [Test]
+        public void ResetPassword_ShouldNotSendMail()
+        {
+            _resultUser.IsEmailConfirmed = false;
+
+            var result = _accountController.ResetPassword(_mappedUser.Email).Result;
+
+            _mockUserService.Verify(x => x.GetByEmailWithResetPasswordKeys(_mappedUser.Email), Times.Once);
+            _mockResetPasswordService.Verify(x => x.CreateResetPasswordKey(_resultUser), Times.Never);
+            _mockMailService.Verify(x => x.SendResetPasswordMessage(It.IsAny<string>(), It.IsAny<Guid>()), Times.Never);
+            Assert.That(result, Is.EqualTo("Error"));
+        }
+
+        [Test]
+        public void ConfirmEmail_ShouldCallService()
+        {
+            _accountController.ConfirmEmail(_resetPasswordKey.Id);
+
+            _mockUserService.Verify(x => x.ConfirmUserEmail(_resetPasswordKey.Id), Times.Once);
         }
 
         [Test]

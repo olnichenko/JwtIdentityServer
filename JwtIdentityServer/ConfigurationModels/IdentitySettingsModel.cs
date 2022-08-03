@@ -4,7 +4,5 @@
     {
         public static string SectionName = "IdentitySettings";
         public int PasswordResetLinkExpirationDateHours { get; set; }
-        public string PasswordResetLinkUrl { get; set; }
-
     }
 }

@@ -9,5 +9,7 @@ namespace DAL.Models
         public string Email { get; set; }
         public string Password { get; set; }
         public List<ResetPasswordKey>? resetPasswordKeys { get; set; }
+        public Guid EmailConfirmationKey { get; set; }
+        public bool IsEmailConfirmed { get; set; }
     }
 }

@@ -15,7 +15,7 @@ namespace JwtIdentityServer.Services
             _identitySettingsModel = identitySettingsModel.Value;
             _resetPasswordKeyRepository = resetPasswordKeyRepository;
         }
-        public async Task<string> CreateResetPasswordLink(User user)
+        public async Task<ResetPasswordKey> CreateResetPasswordKey(User user)
         {
             var resetPasswordKey = new ResetPasswordKey
             {
@@ -24,13 +24,8 @@ namespace JwtIdentityServer.Services
             };
 
             var result = await _resetPasswordKeyRepository.Create(resetPasswordKey, user);
-            var linkText = string.Empty;
-
-            if (result != null)
-            {
-                linkText = _identitySettingsModel.PasswordResetLinkUrl + result.Id;
-            }
-            return linkText;
+            
+            return result;
         }
 
         public async Task<bool> SetResetKeyAsUsed(Guid resetKey)
